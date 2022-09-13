@@ -7,9 +7,6 @@ import (
 	util "github.com/scoutdb/path-tracer/utils"
 )
 
-const image_width = 4
-const image_height = 4
-
 type Output struct {
 	Image string
 }
@@ -22,31 +19,72 @@ func writeColor(pixelColor util.Vector) string {
 	return ty
 }
 
+func hitSphere(center util.Vector, radious float64, r util.Ray) bool {
+	oc := r.Orig.Sub(center)
+	a := util.Dot(r.Dir, r.Dir)
+	b := 2.0 * util.Dot(oc, r.Dir)
+	c := util.Dot(oc, oc) - radious*radious
+	Discriminate := b*b - 4*a*c
+	// fmt.Println("TEst :", Discriminate)
+	return (Discriminate > 0)
+}
+func rayColor(r util.Ray) util.Vector {
+
+	hs := hitSphere(util.Vector{X: 0, Y: 0, Z: -1}, 0.5, r)
+	// fmt.Println(hs)
+	if hs == true {
+		return util.Vector{X: 1, Y: 0, Z: 0}
+	}
+
+	unitDirection := util.Vector(r.Dir)
+	t := 0.5 * (unitDirection.Y + 1)
+
+	C := util.Vector{X: 1.0, Y: 1.0, Z: 1.0}
+	C2 := util.Vector{X: 0.5, Y: 0.7, Z: 1.0}
+	return C.Multiply(1.0 - t).Add(C2.Multiply(t))
+}
+
 func main() {
+
+	// image
+	const aspectRatio = 16.0 / 9.0
+	const imageWidth = 400
+	const imageHeight = int(imageWidth / aspectRatio)
+
+	//camera
+	const viewportHeight = 2.0
+	const viewportWidth = aspectRatio * viewportHeight
+	const focalLegnth = 1.0
+	origin := util.Vector{X: 0, Y: 0, Z: 0}
+	horizontal := util.Vector{X: viewportWidth, Y: 0, Z: 0}
+	vertical := util.Vector{X: 0, Y: viewportHeight, Z: 0}
+	fl := util.Vector{X: 0, Y: 0, Z: focalLegnth}
+	lowerLeftCorner := origin.Sub(horizontal.Devide(2)).Sub(vertical.Devide(2).Sub(fl))
 
 	// final output string
 	ppm := &Output{
 		// start the PPM with some formatt info
 		// P3 for ASCII colors,
 		// Columns (image_width) , Rows (image_height)
-		Image: fmt.Sprintf("P3\n%v %v\n255\n", image_width, image_height),
+		Image: fmt.Sprintf("P3\n%v %v\n255\n", imageWidth, imageHeight),
 	}
 
 	// Loop through pixel grid
-	for j := (image_height - 1); j >= 0; j-- {
+	for j := (imageHeight - 1); j >= 0; j-- {
 		fmt.Println("\rScanlines remaining: ", j)
-		for i := 0; i < image_width; i++ {
-			r := float64(i) / (image_width - 1)
-			g := float64(j) / (image_height - 1)
-			b := 0.25
+		for i := 0; i < imageWidth; i++ {
+			u := float64(i) / (imageWidth - 1)
+			v := float64(j) / float64(imageHeight-1)
+			// b := 0.25
 
-			color := util.Vector{
-				X: r,
-				Y: g,
-				Z: b,
+			r := util.Ray{
+				Orig: origin,
+				Dir:  lowerLeftCorner.Add(horizontal.Multiply(u).Add(vertical.Multiply(v).Sub(origin))),
 			}
 
-			column := fmt.Sprintf("%v%v", ppm.Image, writeColor(color))
+			t := rayColor(r)
+
+			column := fmt.Sprintf("%v%v", ppm.Image, writeColor(t))
 
 			ppm = &Output{
 				Image: column,

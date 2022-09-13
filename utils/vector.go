@@ -6,7 +6,7 @@ type Vector struct {
 	X, Y, Z float64
 }
 
-func (a Vector) sub(b Vector) Vector {
+func (a Vector) Sub(b Vector) Vector {
 	a.X -= b.X
 	a.Y -= b.Y
 	a.Z -= b.Z
@@ -14,7 +14,7 @@ func (a Vector) sub(b Vector) Vector {
 	return a
 }
 
-func (a Vector) add(b Vector) Vector {
+func (a Vector) Add(b Vector) Vector {
 	a.X += b.X
 	a.Y += b.Y
 	a.Z += b.Z
@@ -22,23 +22,19 @@ func (a Vector) add(b Vector) Vector {
 	return a
 }
 
-func (a Vector) multiply(b Vector) Vector {
-	a.X *= b.X
-	a.Y *= b.Y
-	a.Z *= b.Z
+func (a Vector) Multiply(b float64) Vector {
+	a.X *= b
+	a.Y *= b
+	a.Z *= b
 
 	return a
 }
 
-func (a Vector) devide(b Vector) Vector {
-	a.X *= b.X
-	a.Y *= b.Y
-	a.Z *= b.Z
-
-	return a
+func (a Vector) Devide(t float64) Vector {
+	return a.Multiply(1 / t)
 }
 
-func (a Vector) dot(b Vector) float64 {
+func Dot(a Vector, b Vector) float64 {
 	return a.X*b.X + a.Y*b.Y + a.Z*b.Z
 }
 
@@ -51,8 +47,8 @@ func (a Vector) cross(b Vector) Vector {
 }
 
 func (a Vector) length() float64 {
-	return math.Sqrt(a.dot(a))
+	return math.Sqrt(Dot(a, a))
 }
 func (a Vector) lengthSquared() float64 {
-	return a.dot(a)
+	return Dot(a, a)
 }
