@@ -52,3 +52,10 @@ func (a Vector) length() float64 {
 func (a Vector) lengthSquared() float64 {
 	return Dot(a, a)
 }
+
+// Helpers
+
+// NewVector creates a new Vector instance
+func NewVector(x float64, y float64, z float64) Vector {
+	return Vector{X: x, Y: y, Z: z}
+}

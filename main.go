@@ -25,12 +25,11 @@ func hitSphere(center util.Vector, radious float64, r util.Ray) bool {
 	b := 2.0 * util.Dot(oc, r.Dir)
 	c := util.Dot(oc, oc) - radious*radious
 	Discriminate := b*b - 4*a*c
-	// fmt.Println("TEst :", Discriminate)
 	return (Discriminate > 0)
 }
 func rayColor(r util.Ray) util.Vector {
 
-	hs := hitSphere(util.Vector{X: 0, Y: 0, Z: -1}, 0.5, r)
+	hs := hitSphere(util.NewVector(0, 0, -1), 0.5, r)
 	// fmt.Println(hs)
 	if hs == true {
 		return util.Vector{X: 1, Y: 0, Z: 0}
@@ -39,8 +38,8 @@ func rayColor(r util.Ray) util.Vector {
 	unitDirection := util.Vector(r.Dir)
 	t := 0.5 * (unitDirection.Y + 1)
 
-	C := util.Vector{X: 1.0, Y: 1.0, Z: 1.0}
-	C2 := util.Vector{X: 0.5, Y: 0.7, Z: 1.0}
+	C := util.NewVector(1.0, 1.0, 1.0)
+	C2 := util.NewVector(0.5, 0.7, 1.0)
 	return C.Multiply(1.0 - t).Add(C2.Multiply(t))
 }
 
@@ -55,11 +54,12 @@ func main() {
 	const viewportHeight = 2.0
 	const viewportWidth = aspectRatio * viewportHeight
 	const focalLegnth = 1.0
-	origin := util.Vector{X: 0, Y: 0, Z: 0}
-	horizontal := util.Vector{X: viewportWidth, Y: 0, Z: 0}
-	vertical := util.Vector{X: 0, Y: viewportHeight, Z: 0}
-	fl := util.Vector{X: 0, Y: 0, Z: focalLegnth}
-	lowerLeftCorner := origin.Sub(horizontal.Devide(2)).Sub(vertical.Devide(2).Sub(fl))
+
+	origin := util.NewVector(0, 0, 0)
+	horizontal := util.NewVector(viewportWidth, 0, 0)
+	vertical := util.NewVector(0, viewportHeight, 0)
+	lowerLeftCorner := origin.Sub(horizontal.Devide(2)).
+		Sub(vertical.Devide(2).Sub(util.NewVector(0, 0, focalLegnth)))
 
 	// final output string
 	ppm := &Output{
