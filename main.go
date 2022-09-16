@@ -8,8 +8,8 @@ import (
 )
 
 // randFloat returns a random number between [0,1]
-func randFloat() float64 {
-	return rand.Float64()
+func randFloat(min float64, max float64) float64 {
+	return min + (max-min)*rand.Float64()
 }
 
 func clamp(x float64, min float64, max float64) float64 {
@@ -35,11 +35,17 @@ func hitSphere(center vec3, radius float64, r ray) float64 {
 	}
 }
 
-func rayColor(r ray, world hitableList) vec3 {
+func rayColor(r ray, world hitableList, depth int) vec3 {
 	rec := &hitRecord{}
 
-	if world.hit(r, 0, 10000, rec) {
-		return color{1, 1, 1}.add(rec.normal).scalarMult(0.5)
+	if depth <= 0 {
+		return color{0, 0, 0}
+	}
+
+	if world.hit(r, 0.001, math.Inf(0), rec) {
+		target := rec.p.add(randomInHemisphere(rec.normal))
+		// return color{1, 1, 1}.add(rec.normal).scalarMult(0.5)
+		return rayColor(ray{rec.p, target.sub(rec.p)}, world, depth-1).scalarMult(0.5)
 	}
 
 	unitDirection := unitVector(r.direction)
@@ -57,6 +63,7 @@ func main() {
 	imageWidth := 400
 	imageHeight := int(float64(imageWidth) / (aspectRatio))
 	samples := 100
+	maxDepth := 50
 
 	// World
 	world := hitableList{}
@@ -73,11 +80,10 @@ func main() {
 		for i := 0; i < imageWidth; i++ {
 			pixelColor := color{0, 0, 0}
 			for s := 0; s < samples; s++ {
-				// fmt.Println(randFloat())
-				u := (float64(i) + randFloat()) / (float64(imageWidth) - 1)
-				v := (float64(j) + randFloat()) / (float64(imageHeight) - 1)
+				u := (float64(i) + randFloat(0.0, 1.0)) / (float64(imageWidth) - 1)
+				v := (float64(j) + randFloat(0.0, 1.0)) / (float64(imageHeight) - 1)
 				r := cam.getRay(u, v)
-				pixelColor = pixelColor.add(rayColor(r, world))
+				pixelColor = pixelColor.add(rayColor(r, world, maxDepth))
 
 			}
 

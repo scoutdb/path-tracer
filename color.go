@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 func writeColor(pixelColor vec3, samples int) string {
 
@@ -9,9 +12,9 @@ func writeColor(pixelColor vec3, samples int) string {
 	b := pixelColor.z
 
 	scale := 1.0 / float64(samples)
-	r *= scale
-	g *= scale
-	b *= scale
+	r = math.Sqrt(scale * r)
+	g = math.Sqrt(scale * g)
+	b = math.Sqrt(scale * b)
 
 	// fmt.Println(r, g, b)
 
