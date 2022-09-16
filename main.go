@@ -2,101 +2,99 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
-
-	util "github.com/scoutdb/path-tracer/utils"
 )
 
-type Output struct {
-	Image string
+func hitSphere(center vec3, radius float64, r ray) float64 {
+	oc := r.origin.sub(center)
+	a := r.direction.lengthSquared()
+	halfB := dot(oc, r.direction)
+	c := oc.lengthSquared() - radius*radius
+	discriminant := halfB*halfB - a*c
+	if discriminant < 0 {
+		return -1.0
+	} else {
+		return ((-halfB - math.Sqrt(discriminant)) / a)
+	}
 }
 
-func writeColor(pixelColor util.Vector) string {
-	ty := fmt.Sprintf("%v %v %v\n",
-		int(255.999*pixelColor.X),
-		int(255.999*pixelColor.Y),
-		int(255.999*pixelColor.Z))
-	return ty
-}
+// func rayColor(r ray) vec3 {
+// 	var hs = hitSphere(point{0, 0, -1}, 0.5, r)
+// 	if hs > 0.0 {
+// 		N := unitVector(r.at(hs).sub(vec3{0, 0, -1}))
+// 		return color{N.x + 1, N.y + 1, N.z + 1}.scalarMult(0.5)
+// 	}
 
-func hitSphere(center util.Vector, radious float64, r util.Ray) bool {
-	oc := r.Orig.Sub(center)
-	a := util.Dot(r.Dir, r.Dir)
-	b := 2.0 * util.Dot(oc, r.Dir)
-	c := util.Dot(oc, oc) - radious*radious
-	Discriminate := b*b - 4*a*c
-	return (Discriminate > 0)
-}
-func rayColor(r util.Ray) util.Vector {
+// 	unitDirection := unitVector(r.direction)
+// 	t := 0.5 * (unitDirection.y + 1.0)
 
-	hs := hitSphere(util.NewVector(0, 0, -1), 0.5, r)
-	// fmt.Println(hs)
-	if hs == true {
-		return util.Vector{X: 1, Y: 0, Z: 0}
+//		white := color{1, 1, 1}.scalarMult(1 - t)
+//		blue := color{0.5, 0.7, 1}.scalarMult(t)
+//		return white.add(blue)
+//	}
+func rayColor(r ray, world hitableList) vec3 {
+	rec := &hitRecord{}
+	// var hs = hitSphere(point{0, 0, -1}, 0.5, r)
+	if world.hit(r, 0, 10000, rec) {
+		return color{1, 1, 1}.add(rec.normal).scalarMult(0.5)
 	}
 
-	unitDirection := util.Vector(r.Dir)
-	t := 0.5 * (unitDirection.Y + 1)
+	unitDirection := unitVector(r.direction)
+	t := 0.5 * (unitDirection.y + 1.0)
 
-	C := util.NewVector(1.0, 1.0, 1.0)
-	C2 := util.NewVector(0.5, 0.7, 1.0)
-	return C.Multiply(1.0 - t).Add(C2.Multiply(t))
+	white := color{1, 1, 1}.scalarMult(1 - t)
+	blue := color{0.5, 0.7, 1}.scalarMult(t)
+	return white.add(blue)
 }
 
 func main() {
 
-	// image
-	const aspectRatio = 16.0 / 9.0
-	const imageWidth = 400
-	const imageHeight = int(imageWidth / aspectRatio)
+	// Image
+	aspectRatio := 16.0 / 9.0
+	imageWidth := 400
+	imageHeight := int(float64(imageWidth) / (aspectRatio))
 
-	//camera
-	const viewportHeight = 2.0
-	const viewportWidth = aspectRatio * viewportHeight
-	const focalLegnth = 1.0
+	// World
+	world := hitableList{}
+	world.Add(sphere{vec3{0, 0, -1}, 0.5})
+	world.Add(sphere{vec3{0, -100.5, -1}, 100})
 
-	origin := util.NewVector(0, 0, 0)
-	horizontal := util.NewVector(viewportWidth, 0, 0)
-	vertical := util.NewVector(0, viewportHeight, 0)
-	lowerLeftCorner := origin.Sub(horizontal.Devide(2)).
-		Sub(vertical.Devide(2).Sub(util.NewVector(0, 0, focalLegnth)))
+	// Camera
+	viewportHeight := 2.0
+	viewportWidth := float64(aspectRatio * viewportHeight)
+	focalLength := 1.0
 
-	// final output string
-	ppm := &Output{
-		// start the PPM with some formatt info
-		// P3 for ASCII colors,
-		// Columns (image_width) , Rows (image_height)
-		Image: fmt.Sprintf("P3\n%v %v\n255\n", imageWidth, imageHeight),
-	}
+	origin := point{0, 0, 0}
+	horizontal := vec3{viewportWidth, 0, 0}
+	vertical := vec3{0, viewportHeight, 0}
+	lowerLeftCorner := origin.sub(divide(horizontal, 2)).
+		sub(divide(vertical, 2)).sub(vec3{0, 0, focalLength})
 
-	// Loop through pixel grid
+	image := fmt.Sprintf("P3\n%v %v\n255\n", imageWidth, imageHeight)
+
 	for j := (imageHeight - 1); j >= 0; j-- {
 		fmt.Println("\rScanlines remaining: ", j)
 		for i := 0; i < imageWidth; i++ {
-			u := float64(i) / (imageWidth - 1)
-			v := float64(j) / float64(imageHeight-1)
-			// b := 0.25
 
-			r := util.Ray{
-				Orig: origin,
-				Dir:  lowerLeftCorner.Add(horizontal.Multiply(u).Add(vertical.Multiply(v).Sub(origin))),
-			}
+			u := float64(i) / (float64(imageWidth) - 1)
+			v := float64(j) / (float64(imageHeight) - 1)
 
-			t := rayColor(r)
+			r := ray{origin, lowerLeftCorner.add(horizontal.scalarMult(u)).
+				add(vertical.scalarMult(v)).sub(origin)}
 
-			column := fmt.Sprintf("%v%v", ppm.Image, writeColor(t))
+			c := rayColor(r, world)
 
-			ppm = &Output{
-				Image: column,
-			}
+			image = fmt.Sprintf("%v%v", image, writeColor(c))
 		}
 	}
 
-	out := []byte(ppm.Image)
+	out := []byte(image)
 	err := os.WriteFile("/Users/scoutdarling-blair/lab/path-tracer/test.ppm", out, 0644)
 	if err != nil {
 		fmt.Print(err)
 	}
 
 	fmt.Print("\nDone.\n")
+
 }
